@@ -3,6 +3,7 @@
 #include<string.h>
 #include <stdbool.h>
 #include <unistd.h>
+#include <errno.h>
 //#include <unistd.h>
 #define MAX_READ_SIZE 100
 
