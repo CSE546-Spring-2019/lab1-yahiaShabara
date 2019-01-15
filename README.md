@@ -4,4 +4,4 @@ It also finds the size of <input filename>.
 The results are printed to the screen and outputted to <output-filename>
   
  **Usage**
-  ./count <input-filename> <search-string> <output-filename>
+  ./count </input-filename> </search-string> </output-filename>
