@@ -44,9 +44,10 @@ int main(int argc, char *argv[])
         exit(1);
     }
 
-    /* the count function will return its results in the int array 'results'
-       where result[0] is the file size, and result[1] is the <search-string>
-       number of appearances (frequency) in <input-filename> */
+    /* the count function will count how many times <search-string>
+       has appeared (aka the frequency) in <input-filename>
+       then will print its results to the screen and create a file
+       <output-filename> to which the same results are copied */
 
     count(argv[1] ,argv[2], argv[3]);
 
@@ -72,6 +73,7 @@ void count(char *filename, char *searchString, char *filename_out){
     long int fileSize = 0;
     int frequency = 0;
     int searchStringLength = strlen(searchString);
+
     struct binbin_result resValue;
     struct binbin_result* res = &resValue;
 
@@ -81,8 +83,11 @@ void count(char *filename, char *searchString, char *filename_out){
 
 
     int const readSize = MAX_READ_SIZE;
+
+    // The file is read in chunks of length readSize.
     char readChunk[readSize];
 
+    // opens input file and generates error messages if any
     fp_read = fopen(filename, "rb");
     if(fp_read == NULL) {
         perror("Error opening file");
@@ -90,17 +95,33 @@ void count(char *filename, char *searchString, char *filename_out){
         exit(1);
     }
 
+    // these lines find the size of the file
+    //--------------------------------------
     fseek(fp_read, 0L, SEEK_END);
     fileSize = ftell(fp_read);
     rewind(fp_read);
+    //--------------------------------------
 
+
+
+
+    // Since the <search-string> can occur in two parts
+    // where the first part lies at the end of one chunk
+    // and the second part at the beginning of the next chunk
+    // I rewind the file position indicator such that it read
+    // the last (searchStringLength - 1) bytes of the previous
+    // chunk again.
     long int offset = -1*(searchStringLength - 1);
 
+    // pointer to the begnning of the first matched string
+    // in the read chunk
     char *strMatchPtr;
+
     size_t temp_size;
     char *temp;
     int strMatchOffset;
 
+    // fread() returns the number of the bytes it had read in readChunk_size
     size_t readChunk_size;
     readChunk_size = fread(readChunk, sizeof(readChunk[0]), readSize, fp_read);
 
@@ -113,17 +134,23 @@ void count(char *filename, char *searchString, char *filename_out){
         strMatchOffset = res->matchOffset;
         while(strMatchPtr){
             frequency = frequency + 1;
-            temp = &strMatchPtr[0] + 1;
+            temp = &strMatchPtr[0] + 1; // temp points to the remaining part of the readChunk
             temp_size = temp_size - strMatchOffset - 1;
-            binbin(temp, temp_size, searchString, res);
+            binbin(temp, temp_size, searchString, res); // looks for more possible string matches in temp
             strMatchPtr = res->matchPtr;
             strMatchOffset = res->matchOffset;
         }
 
+	// to read the last searchStringLength - 1) bytes of the previous
+	// chunk again. (will be the beginning of the new readChunk).
         fseek(fp_read, offset, SEEK_CUR);
         readChunk_size = fread(readChunk, sizeof(readChunk[0]), readSize, fp_read);
     }while(!feof(fp_read));
 
+
+    // if end of file (FEOF) is reached but there was some part of the file that was read before
+    // we got to FEOF, then the next lines repeats what the do{} while(); statement
+    // statement does but only once.
     if(feof(fp_read) && readChunk_size>0){
         temp = readChunk;
         temp_size = readChunk_size;
